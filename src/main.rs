@@ -1,5 +1,7 @@
+use percent_encoding::{percent_decode_str, utf8_percent_encode, CONTROLS};
 use reqwest;
 use serde::{Deserialize, Serialize};
+use std::io::{self, Write};
 #[derive(Debug, Deserialize)]
 struct PaymentConfirmation {
     initCallBackendAPI: bool,
@@ -46,9 +48,17 @@ struct User {
 }
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
+    let mut id = String::new();
+    let mut zone = String::new();
+    print!("Enter Game ID: ");
+    io::stdout().flush().unwrap();
+    io::stdin().read_line(&mut id).unwrap();
+    print!("Enter Zone ID: ");
+    io::stdout().flush().unwrap();
+    io::stdin().read_line(&mut zone).unwrap();
     // Specify the URL you want to make a GET request to
     let url = "https://order-sg.codashop.com/initPayment.action";
-    let form_data = "voucherPricePoint.id=266837&voucherPricePoint.price=5.5&voucherPricePoint.variablePrice=0&n=11%2F17%2F2023-2121&email=&userVariablePrice=0&order.data.profile=eyJuYW1lIjoiICIsImRhdGVvZmJpcnRoIjoiIiwiaWRfbm8iOiIifQ%3D%3D&user.userId=619696143&user.zoneId=10115&msisdn=&voucherTypeName=MOBILE_LEGENDS&voucherTypeId=5&gvtId=19&lvtId=51&pcId=90&shopLang=en_PH&checkoutId=f31cc7ce-9973-4b59-94f1-4197c6b76819&affiliateTrackingId=&impactClickId=&anonymousId=&absoluteUrl=https%3A%2F%2Fwww.codashop.com%2Fen-ph%2Fmobile-legends&utmParameters=&userSessionId=f23dce35-f4ac-49f7-9611-6bd71fe445d5&userEmailConsent=false&userMobileConsent=false&userCustomCommerceEmailConsent=false&verifiedMsisdn=&promoId=&promoCode=&clevertapId=&promotionReferralCode=&isReferredUser=false";
+    let form_data = format!("voucherPricePoint.id=266837&voucherPricePoint.price=5.5&voucherPricePoint.variablePrice=0&n=11%2F17%2F2023-2121&email=&userVariablePrice=0&order.data.profile=eyJuYW1lIjoiICIsImRhdGVvZmJpcnRoIjoiIiwiaWRfbm8iOiIifQ%3D%3D&user.userId={}&user.zoneId={}&msisdn=&voucherTypeName=MOBILE_LEGENDS&voucherTypeId=5&gvtId=19&lvtId=51&pcId=90&shopLang=en_PH&checkoutId=f31cc7ce-9973-4b59-94f1-4197c6b76819&affiliateTrackingId=&impactClickId=&anonymousId=&absoluteUrl=https%3A%2F%2Fwww.codashop.com%2Fen-ph%2Fmobile-legends&utmParameters=&userSessionId=f23dce35-f4ac-49f7-9611-6bd71fe445d5&userEmailConsent=false&userMobileConsent=false&userCustomCommerceEmailConsent=false&verifiedMsisdn=&promoId=&promoCode=&clevertapId=&promotionReferralCode=&isReferredUser=false",id.trim(),zone.trim());
     let client = reqwest::Client::new();
     let response = client
         .post(url)
@@ -67,8 +77,10 @@ async fn main() -> Result<(), reqwest::Error> {
         match parsed_body {
             Ok(data) => {
                 println!(
-                    "IGN: {:?}\nGrabbed using Rust🦀",
-                    data.confirmationFields.username
+                    "IGN: {}\nGrabbed using Rust🦀",
+                    percent_decode_str(data.confirmationFields.username.as_str())
+                        .decode_utf8_lossy()
+                        .replace("+", " ")
                 );
             }
             Err(e) => {
